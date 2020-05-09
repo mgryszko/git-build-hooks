@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+project=$(basename $(pwd))
+commit_hash=$(git rev-parse --short HEAD)
+osascript -e "display notification \"Starting build - commit $commit_hash\" with title \"$project\""
+
+docker run --rm \
+  --volume=$PWD:/home/gradle/project \
+  --volume=$HOME/.gradle:/home/gradle/.gradle \
+  gradle:jdk11 /bin/bash -c "git clone --depth=1 file:///home/gradle/project isolated-project && gradle build -p isolated-project --console=plain"
+
+docker_exit_status=$?
+
+if [ $docker_exit_status -eq 0 ]; then
+    osascript -e "display notification \"Build successful - commit $commit_hash\" with title \"$project\" sound name \"Submarine\""
+else
+    osascript -e "display notification \"Build failed - commit $commit_hash\" with title \"$project\" sound name \"Submarine\""
+fi
+
+exit $docker_exit_status
+
+    
+
+
+
