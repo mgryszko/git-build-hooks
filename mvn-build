@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+project=$(basename $(pwd))
+commit_hash=$(git rev-parse --short HEAD)
+osascript -e "display notification \"Starting build - commit $commit_hash\" with title \"$project\""
+
+build_home=/root
+
+#docker run --privileged --name some-docker --detach docker:dind
+docker run --rm \
+  --volume=$PWD:$build_home/project \
+  --volume=$HOME/.m2:$build_home/.m2 \
+  --volume=/var/run/docker.sock:/var/run/docker.sock \
+  --workdir=$build_home \
+  maven:3.6-jdk-11 \
+  /bin/bash -c "git clone --depth=1 file://$build_home/project isolated-project && mvn -f isolated-project/pom.xml clean install"
+
+docker_exit_status=$?
+
+if [ $docker_exit_status -eq 0 ]; then
+    osascript -e "display notification \"Build successful - commit $commit_hash\" with title \"$project\" sound name \"Submarine\""
+else
+    osascript -e "display notification \"Build failed - commit $commit_hash\" with title \"$project\" sound name \"Submarine\""
+fi
+
+exit $docker_exit_status
