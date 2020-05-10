@@ -4,10 +4,14 @@ project=$(basename $(pwd))
 commit_hash=$(git rev-parse --short HEAD)
 osascript -e "display notification \"Starting build - commit $commit_hash\" with title \"$project\""
 
+build_home=/home/gradle
+
 docker run --rm \
-  --volume=$PWD:/home/gradle/project \
-  --volume=$HOME/.gradle:/home/gradle/.gradle \
-  gradle:jdk11 /bin/bash -c "git clone --depth=1 file:///home/gradle/project isolated-project && gradle build -p isolated-project --console=plain"
+  --volume=$PWD:$build_home/project \
+  --volume=$HOME/.gradle:$build_home/.gradle \
+  --volume=/var/run/docker.sock:/var/run/docker.sock \
+  gradle:jdk11 \
+  /bin/bash -c "git clone --depth=1 file://$build_home/project isolated-project && gradle build -p isolated-project --console=plain"
 
 docker_exit_status=$?
 
